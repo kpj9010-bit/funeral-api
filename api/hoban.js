@@ -20,7 +20,6 @@ export default async function handler(req, res) {
     });
 
     const html = await response.text();
-
     if (!html || html.length < 100) {
       return res.status(200).json({
         success: true,
@@ -31,38 +30,31 @@ export default async function handler(req, res) {
     }
 
     // =========================
-    // ✅ HTML 파싱
+    // HTML 파싱
     // =========================
     const { parse } = await import("node-html-parser");
     const root = parse(html);
 
-    const tables = root.querySelectorAll("table");
+    const rows = root.querySelectorAll("tr");
     const items = [];
 
-    tables.forEach((table) => {
-      const text = table.text;
+    rows.forEach((row) => {
+      const cells = row.querySelectorAll("td");
+      if (!cells || cells.length < 6) return;
 
-      // 👉 빈소현황 테이블만 선택
-      if (!text.includes("빈소명") || !text.includes("고인명")) return;
+      const roomText = cells[0].text.trim();
 
-      const rows = table.querySelectorAll("tr");
+      // ✅ 빈소 데이터 행만 필터
+      if (!roomText.includes("호")) return;
 
-      rows.forEach((row, index) => {
-        // 첫 줄은 헤더
-        if (index === 0) return;
-
-        const cells = row.querySelectorAll("td");
-        if (!cells || cells.length < 6) return;
-
-        items.push({
-          room: cells[0].text.trim(),
-          deceased: cells[1].text.trim(),
-          enteredAt: cells[2].text.trim(),
-          chief: cells[3].text.trim(),
-          burial: cells[4].text.trim(),
-          departure: cells[5].text.trim(),
-          note: cells[6] ? cells[6].text.trim() : "",
-        });
+      items.push({
+        room: roomText,
+        deceased: cells[1].text.trim(),
+        enteredAt: cells[2].text.trim(),
+        chief: cells[3].text.trim(),
+        burial: cells[4].text.trim(),
+        departure: cells[5].text.trim(),
+        note: cells[6] ? cells[6].text.trim() : "",
       });
     });
 
