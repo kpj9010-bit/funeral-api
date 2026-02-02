@@ -36,7 +36,7 @@ const { parse } = await import("node-html-parser");
 const root = parse(html);
 
 // 테이블 행들 가져오기
-const rows = root.querySelectorAll("table tbody tr");
+const rows = root.querySelectorAll("table tr");
 
 const items = [];
 
