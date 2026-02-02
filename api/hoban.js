@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
   try {
-    // CORS 허용 (GitHub Pages에서 호출 가능)
+    // CORS 허용
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -26,41 +26,50 @@ export default async function handler(req, res) {
         success: true,
         updatedAt: new Date().toISOString(),
         items: [],
-        note: "HTML을 정상적으로 가져오지 못함",
+        note: "HTML 수신 실패",
       });
     }
 
-    // 아직 파싱 안 함 (다음 단계)
-    // ✅ HTML 파싱 시작
-const { parse } = await import("node-html-parser");
-const root = parse(html);
+    // =========================
+    // ✅ HTML 파싱
+    // =========================
+    const { parse } = await import("node-html-parser");
+    const root = parse(html);
 
-// 테이블 행들 가져오기
-const rows = root.querySelectorAll("table tr");
+    const tables = root.querySelectorAll("table");
+    const items = [];
 
-const items = [];
+    tables.forEach((table) => {
+      const text = table.text;
 
-rows.forEach((row) => {
-  const cells = row.querySelectorAll("td");
-  if (!cells || cells.length < 6) return;
+      // 👉 빈소현황 테이블만 선택
+      if (!text.includes("빈소명") || !text.includes("고인명")) return;
 
-  items.push({
-    room: cells[0].text.trim(),       // 빈소명
-    deceased: cells[1].text.trim(),   // 고인명
-    enteredAt: cells[2].text.trim(),  // 입관일시
-    chief: cells[3].text.trim(),      // 상주
-    burial: cells[4].text.trim(),     // 장지
-    departure: cells[5].text.trim(),  // 발인일시
-    note: cells[6] ? cells[6].text.trim() : "",
-  });
-});
+      const rows = table.querySelectorAll("tr");
 
+      rows.forEach((row, index) => {
+        // 첫 줄은 헤더
+        if (index === 0) return;
+
+        const cells = row.querySelectorAll("td");
+        if (!cells || cells.length < 6) return;
+
+        items.push({
+          room: cells[0].text.trim(),
+          deceased: cells[1].text.trim(),
+          enteredAt: cells[2].text.trim(),
+          chief: cells[3].text.trim(),
+          burial: cells[4].text.trim(),
+          departure: cells[5].text.trim(),
+          note: cells[6] ? cells[6].text.trim() : "",
+        });
+      });
+    });
 
     return res.status(200).json({
       success: true,
       updatedAt: new Date().toISOString(),
       items,
-      note: "API 정상 실행 확인 단계",
     });
   } catch (error) {
     return res.status(200).json({
